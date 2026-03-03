@@ -1,25 +1,46 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutGrid, ListPlus, Plus, X } from 'lucide-react';
-import { Transaction } from './types';
+import { LayoutGrid, ListPlus, Plus, X, Users, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
+import { Transaction, Client, RecurringExpense } from './types';
 import { TransactionForm } from './components/TransactionForm';
 import { TransactionList } from './components/TransactionList';
 import { SummaryDashboard } from './components/SummaryDashboard';
+import { ClientList } from './components/ClientList';
+import { ClientForm } from './components/ClientForm';
+import { CalendarView } from './components/CalendarView';
+import { RecurringExpenseForm } from './components/RecurringExpenseForm';
+import { RecurringExpenseList } from './components/RecurringExpenseList';
 import { cn } from './lib/utils';
 
-type Tab = 'summary' | 'transactions';
+type Tab = 'summary' | 'transactions' | 'clients' | 'calendar' | 'fixed-costs';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('financas-pro-transactions');
+    const saved = localStorage.getItem('businessflow-transactions');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [clients, setClients] = useState<Client[]>(() => {
+    const saved = localStorage.getItem('businessflow-clients');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>(() => {
+    const saved = localStorage.getItem('businessflow-recurring-expenses');
     return saved ? JSON.parse(saved) : [];
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('financas-pro-transactions', JSON.stringify(transactions));
+    localStorage.setItem('businessflow-transactions', JSON.stringify(transactions));
   }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem('businessflow-clients', JSON.stringify(clients));
+  }, [clients]);
+
+  useEffect(() => {
+    localStorage.setItem('businessflow-recurring-expenses', JSON.stringify(recurringExpenses));
+  }, [recurringExpenses]);
 
   const addTransaction = (newTransaction: Omit<Transaction, 'id'>) => {
     const transaction: Transaction = {
@@ -34,6 +55,44 @@ export default function App() {
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
+  const addClient = (newClient: Omit<Client, 'id'>) => {
+    const client: Client = {
+      ...newClient,
+      id: crypto.randomUUID(),
+    };
+    setClients(prev => [...prev, client]);
+    setIsFormOpen(false);
+  };
+
+  const deleteClient = (id: string) => {
+    setClients(prev => prev.filter(c => c.id !== id));
+  };
+
+  const toggleClientStatus = (id: string) => {
+    setClients(prev => prev.map(c => 
+      c.id === id ? { ...c, status: c.status === 'active' ? 'inactive' : 'active' } : c
+    ));
+  };
+
+  const addRecurringExpense = (newExpense: Omit<RecurringExpense, 'id'>) => {
+    const expense: RecurringExpense = {
+      ...newExpense,
+      id: crypto.randomUUID(),
+    };
+    setRecurringExpenses(prev => [...prev, expense]);
+    setIsFormOpen(false);
+  };
+
+  const deleteRecurringExpense = (id: string) => {
+    setRecurringExpenses(prev => prev.filter(e => e.id !== id));
+  };
+
+  const toggleRecurringExpenseStatus = (id: string) => {
+    setRecurringExpenses(prev => prev.map(e => 
+      e.id === id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans pb-24">
       {/* Header */}
@@ -44,31 +103,61 @@ export default function App() {
               <LayoutGrid size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-zinc-900 tracking-tight">Finanças Pro</h1>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Controle Inteligente</p>
+              <h1 className="text-xl font-bold text-zinc-900 tracking-tight">BusinessFlow</h1>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gestão Empresarial</p>
             </div>
           </div>
 
-          <nav className="flex bg-zinc-100 p-1 rounded-xl">
+          <nav className="flex bg-zinc-100 p-1 rounded-xl overflow-x-auto max-w-[60%] sm:max-w-none no-scrollbar">
             <button
               onClick={() => setActiveTab('summary')}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2",
+                "px-3 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap",
                 activeTab === 'summary' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
               )}
             >
               <LayoutGrid size={16} />
-              Resumo
+              <span className="hidden sm:inline">Resumo</span>
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2",
+                "px-3 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap",
                 activeTab === 'transactions' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
               )}
             >
               <ListPlus size={16} />
-              Transações
+              <span className="hidden sm:inline">Transações</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={cn(
+                "px-3 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap",
+                activeTab === 'calendar' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
+              )}
+            >
+              <CalendarIcon size={16} />
+              <span className="hidden sm:inline">Calendário</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('clients')}
+              className={cn(
+                "px-3 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap",
+                activeTab === 'clients' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
+              )}
+            >
+              <Users size={16} />
+              <span className="hidden sm:inline">Clientes</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('fixed-costs')}
+              className={cn(
+                "px-3 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap",
+                activeTab === 'fixed-costs' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
+              )}
+            >
+              <RefreshCw size={16} />
+              <span className="hidden sm:inline">Custos Fixos</span>
             </button>
           </nav>
         </div>
@@ -85,14 +174,40 @@ export default function App() {
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'summary' ? (
-              <SummaryDashboard transactions={transactions} />
-            ) : (
+              <SummaryDashboard transactions={transactions} clients={clients} recurringExpenses={recurringExpenses} />
+            ) : activeTab === 'transactions' ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-zinc-900">Histórico</h2>
                   <p className="text-sm text-zinc-500 font-medium">{transactions.length} transações</p>
                 </div>
                 <TransactionList transactions={transactions} onDelete={deleteTransaction} />
+              </div>
+            ) : activeTab === 'calendar' ? (
+              <CalendarView transactions={transactions} />
+            ) : activeTab === 'clients' ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-zinc-900">Carteira de Clientes</h2>
+                  <p className="text-sm text-zinc-500 font-medium">{clients.length} clientes</p>
+                </div>
+                <ClientList 
+                  clients={clients} 
+                  onDelete={deleteClient} 
+                  onToggleStatus={toggleClientStatus} 
+                />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-zinc-900">Custos Fixos</h2>
+                  <p className="text-sm text-zinc-500 font-medium">{recurringExpenses.length} custos cadastrados</p>
+                </div>
+                <RecurringExpenseList 
+                  expenses={recurringExpenses} 
+                  onDelete={deleteRecurringExpense} 
+                  onToggleStatus={toggleRecurringExpenseStatus} 
+                />
               </div>
             )}
           </motion.div>
@@ -125,7 +240,10 @@ export default function App() {
               className="relative w-full max-w-md"
             >
               <div className="flex items-center justify-between mb-4 text-white">
-                <h3 className="text-xl font-bold">Nova Transação</h3>
+                <h3 className="text-xl font-bold">
+                  {activeTab === 'clients' ? 'Novo Cliente' : 
+                   activeTab === 'fixed-costs' ? 'Novo Custo Fixo' : 'Nova Transação'}
+                </h3>
                 <button 
                   onClick={() => setIsFormOpen(false)}
                   className="p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -133,7 +251,13 @@ export default function App() {
                   <X size={24} />
                 </button>
               </div>
-              <TransactionForm onAdd={addTransaction} />
+              {activeTab === 'clients' ? (
+                <ClientForm onAdd={addClient} onCancel={() => setIsFormOpen(false)} />
+              ) : activeTab === 'fixed-costs' ? (
+                <RecurringExpenseForm onAdd={addRecurringExpense} onCancel={() => setIsFormOpen(false)} />
+              ) : (
+                <TransactionForm onAdd={addTransaction} clients={clients} recurringExpenses={recurringExpenses} />
+              )}
             </motion.div>
           </div>
         )}
