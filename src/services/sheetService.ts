@@ -86,5 +86,41 @@ export const sheetService = {
       console.error('Error saving recurring expense to SheetDB:', error);
       return false;
     }
+  },
+
+  async deleteTransaction(id: string) {
+    try {
+      const response = await fetch(`${SHEETDB_API_URL}/id/${id}?sheet=Transactions`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting transaction from SheetDB:', error);
+      return false;
+    }
+  },
+
+  async deleteClient(id: string) {
+    try {
+      const response = await fetch(`${SHEETDB_API_URL}/id/${id}?sheet=Clients`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting client from SheetDB:', error);
+      return false;
+    }
+  },
+
+  async deleteRecurringExpense(id: string) {
+    try {
+      const response = await fetch(`${SHEETDB_API_URL}/id/${id}?sheet=RecurringExpenses`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting recurring expense from SheetDB:', error);
+      return false;
+    }
   }
 };

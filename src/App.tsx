@@ -59,8 +59,12 @@ export default function App() {
     setIsSyncing(false);
   };
 
-  const deleteTransaction = (id: string) => {
+  const deleteTransaction = async (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
+    
+    setIsSyncing(true);
+    await sheetService.deleteTransaction(id);
+    setIsSyncing(false);
   };
 
   const addClient = async (newClient: Omit<Client, 'id'>) => {
@@ -77,8 +81,12 @@ export default function App() {
     setIsSyncing(false);
   };
 
-  const deleteClient = (id: string) => {
+  const deleteClient = async (id: string) => {
     setClients(prev => prev.filter(c => c.id !== id));
+    
+    setIsSyncing(true);
+    await sheetService.deleteClient(id);
+    setIsSyncing(false);
   };
 
   const toggleClientStatus = (id: string) => {
@@ -101,8 +109,12 @@ export default function App() {
     setIsSyncing(false);
   };
 
-  const deleteRecurringExpense = (id: string) => {
+  const deleteRecurringExpense = async (id: string) => {
     setRecurringExpenses(prev => prev.filter(e => e.id !== id));
+    
+    setIsSyncing(true);
+    await sheetService.deleteRecurringExpense(id);
+    setIsSyncing(false);
   };
 
   const toggleRecurringExpenseStatus = (id: string) => {

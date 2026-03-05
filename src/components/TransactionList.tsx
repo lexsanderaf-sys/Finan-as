@@ -60,7 +60,7 @@ export function TransactionList({ transactions, onDelete }: TransactionListProps
             </span>
             <button
               onClick={() => onDelete(transaction.id)}
-              className="p-2 text-zinc-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+              className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
             >
               <Trash2 size={18} />
             </button>

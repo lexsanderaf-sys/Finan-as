@@ -59,7 +59,7 @@ export function RecurringExpenseList({ expenses, onDelete, onToggleStatus }: Rec
                   </span>
                 </div>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 transition-opacity">
                 <button
                   onClick={() => onToggleStatus(expense.id)}
                   className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all"
