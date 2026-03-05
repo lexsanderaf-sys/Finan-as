@@ -1,4 +1,4 @@
-import { User, Trash2, Mail, Calendar, DollarSign, RefreshCw, AlertCircle } from 'lucide-react';
+import { User, Trash2, Mail, Calendar, DollarSign, RefreshCw, AlertCircle, Pencil } from 'lucide-react';
 import { Client } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 
@@ -6,9 +6,10 @@ interface ClientListProps {
   clients: Client[];
   onDelete: (id: string) => void;
   onToggleStatus: (id: string) => void;
+  onEdit: (client: Client) => void;
 }
 
-export function ClientList({ clients, onDelete, onToggleStatus }: ClientListProps) {
+export function ClientList({ clients, onDelete, onToggleStatus, onEdit }: ClientListProps) {
   if (clients.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400 space-y-4">
@@ -63,6 +64,13 @@ export function ClientList({ clients, onDelete, onToggleStatus }: ClientListProp
                 </div>
               </div>
               <div className="flex gap-1 transition-opacity">
+                <button
+                  onClick={() => onEdit(client)}
+                  className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all"
+                  title="Editar"
+                >
+                  <Pencil size={16} />
+                </button>
                 <button
                   onClick={() => onToggleStatus(client.id)}
                   className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all"

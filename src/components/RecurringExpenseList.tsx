@@ -1,4 +1,4 @@
-import { Trash2, Calendar, DollarSign, RefreshCw, AlertCircle, Tag } from 'lucide-react';
+import { Trash2, Calendar, DollarSign, RefreshCw, AlertCircle, Tag, Pencil } from 'lucide-react';
 import { RecurringExpense } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 
@@ -6,9 +6,10 @@ interface RecurringExpenseListProps {
   expenses: RecurringExpense[];
   onDelete: (id: string) => void;
   onToggleStatus: (id: string) => void;
+  onEdit: (expense: RecurringExpense) => void;
 }
 
-export function RecurringExpenseList({ expenses, onDelete, onToggleStatus }: RecurringExpenseListProps) {
+export function RecurringExpenseList({ expenses, onDelete, onToggleStatus, onEdit }: RecurringExpenseListProps) {
   if (expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400 space-y-4">
@@ -60,6 +61,13 @@ export function RecurringExpenseList({ expenses, onDelete, onToggleStatus }: Rec
                 </div>
               </div>
               <div className="flex gap-1 transition-opacity">
+                <button
+                  onClick={() => onEdit(expense)}
+                  className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all"
+                  title="Editar"
+                >
+                  <Pencil size={16} />
+                </button>
                 <button
                   onClick={() => onToggleStatus(expense.id)}
                   className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all"

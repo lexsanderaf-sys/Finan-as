@@ -4,28 +4,36 @@ import { RecurringExpense } from '../types';
 
 interface RecurringExpenseFormProps {
   onAdd: (expense: Omit<RecurringExpense, 'id'>) => void;
+  onUpdate?: (id: string, expense: Omit<RecurringExpense, 'id'>) => void;
+  initialData?: RecurringExpense;
   onCancel: () => void;
 }
 
 const CATEGORIES = ['Fornecedores', 'Impostos', 'Folha de Pagamento', 'Marketing', 'Infraestrutura', 'Logística', 'Software/SaaS', 'Outros'];
 
-export function RecurringExpenseForm({ onAdd, onCancel }: RecurringExpenseFormProps) {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [billingDay, setBillingDay] = useState('10');
+export function RecurringExpenseForm({ onAdd, onUpdate, initialData, onCancel }: RecurringExpenseFormProps) {
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [amount, setAmount] = useState(initialData?.amount.toString() || '');
+  const [category, setCategory] = useState(initialData?.category || CATEGORIES[0]);
+  const [billingDay, setBillingDay] = useState(initialData?.billingDay.toString() || '10');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
 
-    onAdd({
+    const expenseData = {
       description,
       amount: parseFloat(amount),
       category,
       billingDay: parseInt(billingDay) || 1,
-      status: 'active',
-    });
+      status: initialData?.status || 'active' as const,
+    };
+
+    if (initialData && onUpdate) {
+      onUpdate(initialData.id, expenseData);
+    } else {
+      onAdd(expenseData);
+    }
   };
 
   return (

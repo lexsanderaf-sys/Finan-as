@@ -122,5 +122,80 @@ export const sheetService = {
       console.error('Error deleting recurring expense from SheetDB:', error);
       return false;
     }
+  },
+
+  async updateTransaction(id: string, transaction: any) {
+    try {
+      const response = await fetch(`${SHEETDB_API_URL}/id/${id}?sheet=Transactions`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            data: transaction.date,
+            descricao: transaction.description,
+            valor: transaction.amount,
+            tipo: transaction.type,
+            categoria: transaction.category,
+            cliente_id: transaction.clientId || '',
+            custo_fixo_id: transaction.recurringExpenseId || '',
+          }
+        }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error updating transaction in SheetDB:', error);
+      return false;
+    }
+  },
+
+  async updateClient(id: string, client: any) {
+    try {
+      const response = await fetch(`${SHEETDB_API_URL}/id/${id}?sheet=Clients`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            nome: client.name,
+            email: client.email,
+            recorrente: client.isRecurring ? 'Sim' : 'Não',
+            valor_mensal: client.monthlyValue,
+            dia_faturamento: client.billingDay,
+            status: client.status,
+          }
+        }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error updating client in SheetDB:', error);
+      return false;
+    }
+  },
+
+  async updateRecurringExpense(id: string, expense: any) {
+    try {
+      const response = await fetch(`${SHEETDB_API_URL}/id/${id}?sheet=RecurringExpenses`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            descricao: expense.description,
+            valor: expense.amount,
+            categoria: expense.category,
+            dia_vencimento: expense.billingDay,
+            status: expense.status,
+          }
+        }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error updating recurring expense in SheetDB:', error);
+      return false;
+    }
   }
 };

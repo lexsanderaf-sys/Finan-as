@@ -32,6 +32,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<{ type: 'transaction' | 'client' | 'expense', data: any } | null>(null);
 
   useEffect(() => {
     localStorage.setItem('businessflow-transactions', JSON.stringify(transactions));
@@ -59,6 +60,17 @@ export default function App() {
     setIsSyncing(false);
   };
 
+  const updateTransaction = async (id: string, updatedData: Omit<Transaction, 'id'>) => {
+    const updatedTransaction = { ...updatedData, id };
+    setTransactions(prev => prev.map(t => t.id === id ? updatedTransaction : t));
+    setIsFormOpen(false);
+    setEditingItem(null);
+
+    setIsSyncing(true);
+    await sheetService.updateTransaction(id, updatedTransaction);
+    setIsSyncing(false);
+  };
+
   const deleteTransaction = async (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
     
@@ -78,6 +90,17 @@ export default function App() {
     // Sync to SheetDB
     setIsSyncing(true);
     await sheetService.postClient(client);
+    setIsSyncing(false);
+  };
+
+  const updateClient = async (id: string, updatedData: Omit<Client, 'id'>) => {
+    const updatedClient = { ...updatedData, id };
+    setClients(prev => prev.map(c => c.id === id ? updatedClient : c));
+    setIsFormOpen(false);
+    setEditingItem(null);
+
+    setIsSyncing(true);
+    await sheetService.updateClient(id, updatedClient);
     setIsSyncing(false);
   };
 
@@ -109,6 +132,17 @@ export default function App() {
     setIsSyncing(false);
   };
 
+  const updateRecurringExpense = async (id: string, updatedData: Omit<RecurringExpense, 'id'>) => {
+    const updatedExpense = { ...updatedData, id };
+    setRecurringExpenses(prev => prev.map(e => e.id === id ? updatedExpense : e));
+    setIsFormOpen(false);
+    setEditingItem(null);
+
+    setIsSyncing(true);
+    await sheetService.updateRecurringExpense(id, updatedExpense);
+    setIsSyncing(false);
+  };
+
   const deleteRecurringExpense = async (id: string) => {
     setRecurringExpenses(prev => prev.filter(e => e.id !== id));
     
@@ -121,6 +155,16 @@ export default function App() {
     setRecurringExpenses(prev => prev.map(e => 
       e.id === id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e
     ));
+  };
+
+  const handleEdit = (type: 'transaction' | 'client' | 'expense', data: any) => {
+    setEditingItem({ type, data });
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingItem(null);
   };
 
   return (
@@ -223,7 +267,11 @@ export default function App() {
                   <h2 className="text-2xl font-bold text-zinc-900">Histórico</h2>
                   <p className="text-sm text-zinc-500 font-medium">{transactions.length} transações</p>
                 </div>
-                <TransactionList transactions={transactions} onDelete={deleteTransaction} />
+                <TransactionList 
+                  transactions={transactions} 
+                  onDelete={deleteTransaction} 
+                  onEdit={(t) => handleEdit('transaction', t)}
+                />
               </div>
             ) : activeTab === 'calendar' ? (
               <CalendarView transactions={transactions} />
@@ -237,6 +285,7 @@ export default function App() {
                   clients={clients} 
                   onDelete={deleteClient} 
                   onToggleStatus={toggleClientStatus} 
+                  onEdit={(c) => handleEdit('client', c)}
                 />
               </div>
             ) : (
@@ -249,6 +298,7 @@ export default function App() {
                   expenses={recurringExpenses} 
                   onDelete={deleteRecurringExpense} 
                   onToggleStatus={toggleRecurringExpenseStatus} 
+                  onEdit={(e) => handleEdit('expense', e)}
                 />
               </div>
             )}
@@ -272,7 +322,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsFormOpen(false)}
+              onClick={handleCloseForm}
               className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm"
             />
             <motion.div
@@ -283,22 +333,53 @@ export default function App() {
             >
               <div className="flex items-center justify-between mb-4 text-white">
                 <h3 className="text-xl font-bold">
-                  {activeTab === 'clients' ? 'Novo Cliente' : 
-                   activeTab === 'fixed-costs' ? 'Novo Custo Fixo' : 'Nova Transação'}
+                  {editingItem ? (
+                    editingItem.type === 'client' ? 'Editar Cliente' :
+                    editingItem.type === 'expense' ? 'Editar Custo Fixo' : 'Editar Transação'
+                  ) : (
+                    activeTab === 'clients' ? 'Novo Cliente' : 
+                    activeTab === 'fixed-costs' ? 'Novo Custo Fixo' : 'Nova Transação'
+                  )}
                 </h3>
                 <button 
-                  onClick={() => setIsFormOpen(false)}
+                  onClick={handleCloseForm}
                   className="p-2 hover:bg-white/10 rounded-full transition-colors"
                 >
                   <X size={24} />
                 </button>
               </div>
-              {activeTab === 'clients' ? (
-                <ClientForm onAdd={addClient} onCancel={() => setIsFormOpen(false)} />
-              ) : activeTab === 'fixed-costs' ? (
-                <RecurringExpenseForm onAdd={addRecurringExpense} onCancel={() => setIsFormOpen(false)} />
+              {editingItem ? (
+                editingItem.type === 'client' ? (
+                  <ClientForm 
+                    onAdd={addClient} 
+                    onUpdate={updateClient}
+                    initialData={editingItem.data}
+                    onCancel={handleCloseForm} 
+                  />
+                ) : editingItem.type === 'expense' ? (
+                  <RecurringExpenseForm 
+                    onAdd={addRecurringExpense} 
+                    onUpdate={updateRecurringExpense}
+                    initialData={editingItem.data}
+                    onCancel={handleCloseForm} 
+                  />
+                ) : (
+                  <TransactionForm 
+                    onAdd={addTransaction} 
+                    onUpdate={updateTransaction}
+                    initialData={editingItem.data}
+                    clients={clients} 
+                    recurringExpenses={recurringExpenses} 
+                  />
+                )
               ) : (
-                <TransactionForm onAdd={addTransaction} clients={clients} recurringExpenses={recurringExpenses} />
+                activeTab === 'clients' ? (
+                  <ClientForm onAdd={addClient} onCancel={handleCloseForm} />
+                ) : activeTab === 'fixed-costs' ? (
+                  <RecurringExpenseForm onAdd={addRecurringExpense} onCancel={handleCloseForm} />
+                ) : (
+                  <TransactionForm onAdd={addTransaction} clients={clients} recurringExpenses={recurringExpenses} />
+                )
               )}
             </motion.div>
           </div>

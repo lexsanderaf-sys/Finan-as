@@ -5,28 +5,36 @@ import { cn } from '../lib/utils';
 
 interface ClientFormProps {
   onAdd: (client: Omit<Client, 'id'>) => void;
+  onUpdate?: (id: string, client: Omit<Client, 'id'>) => void;
+  initialData?: Client;
   onCancel: () => void;
 }
 
-export function ClientForm({ onAdd, onCancel }: ClientFormProps) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [isRecurring, setIsRecurring] = useState(true);
-  const [monthlyValue, setMonthlyValue] = useState('');
-  const [billingDay, setBillingDay] = useState('10');
+export function ClientForm({ onAdd, onUpdate, initialData, onCancel }: ClientFormProps) {
+  const [name, setName] = useState(initialData?.name || '');
+  const [email, setEmail] = useState(initialData?.email || '');
+  const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring ?? true);
+  const [monthlyValue, setMonthlyValue] = useState(initialData?.monthlyValue.toString() || '');
+  const [billingDay, setBillingDay] = useState(initialData?.billingDay.toString() || '10');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) return;
 
-    onAdd({
+    const clientData = {
       name,
       email: email || undefined,
       isRecurring,
       monthlyValue: isRecurring ? parseFloat(monthlyValue) || 0 : 0,
       billingDay: parseInt(billingDay) || 1,
-      status: 'active',
-    });
+      status: initialData?.status || 'active' as const,
+    };
+
+    if (initialData && onUpdate) {
+      onUpdate(initialData.id, clientData);
+    } else {
+      onAdd(clientData);
+    }
   };
 
   return (

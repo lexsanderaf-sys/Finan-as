@@ -5,6 +5,8 @@ import { cn } from '../lib/utils';
 
 interface TransactionFormProps {
   onAdd: (transaction: Omit<Transaction, 'id'>) => void;
+  onUpdate?: (id: string, transaction: Omit<Transaction, 'id'>) => void;
+  initialData?: Transaction;
   clients: Client[];
   recurringExpenses: RecurringExpense[];
 }
@@ -14,20 +16,20 @@ const CATEGORIES = {
   expense: ['Fornecedores', 'Impostos', 'Folha de Pagamento', 'Marketing', 'Infraestrutura', 'Logística', 'Software/SaaS', 'Outros'],
 };
 
-export function TransactionForm({ onAdd, clients, recurringExpenses }: TransactionFormProps) {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState<TransactionType>('expense');
-  const [category, setCategory] = useState(CATEGORIES.expense[0]);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [clientId, setClientId] = useState<string>('');
-  const [recurringExpenseId, setRecurringExpenseId] = useState<string>('');
+export function TransactionForm({ onAdd, onUpdate, initialData, clients, recurringExpenses }: TransactionFormProps) {
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [amount, setAmount] = useState(initialData?.amount.toString() || '');
+  const [type, setType] = useState<TransactionType>(initialData?.type || 'expense');
+  const [category, setCategory] = useState(initialData?.category || CATEGORIES.expense[0]);
+  const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+  const [clientId, setClientId] = useState<string>(initialData?.clientId || '');
+  const [recurringExpenseId, setRecurringExpenseId] = useState<string>(initialData?.recurringExpenseId || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
 
-    onAdd({
+    const transactionData = {
       description,
       amount: parseFloat(amount),
       type,
@@ -35,12 +37,20 @@ export function TransactionForm({ onAdd, clients, recurringExpenses }: Transacti
       date,
       clientId: type === 'income' && clientId ? clientId : undefined,
       recurringExpenseId: type === 'expense' && recurringExpenseId ? recurringExpenseId : undefined,
-    });
+    };
 
-    setDescription('');
-    setAmount('');
-    setClientId('');
-    setRecurringExpenseId('');
+    if (initialData && onUpdate) {
+      onUpdate(initialData.id, transactionData);
+    } else {
+      onAdd(transactionData);
+    }
+
+    if (!initialData) {
+      setDescription('');
+      setAmount('');
+      setClientId('');
+      setRecurringExpenseId('');
+    }
   };
 
   const activeClients = clients.filter(c => c.status === 'active');
@@ -187,7 +197,7 @@ export function TransactionForm({ onAdd, clients, recurringExpenses }: Transacti
         className="w-full mt-6 bg-zinc-900 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-zinc-800 transition-colors shadow-xl"
       >
         <PlusCircle size={20} />
-        Adicionar Transação
+        {initialData ? 'Salvar Alterações' : 'Adicionar Transação'}
       </button>
     </form>
   );

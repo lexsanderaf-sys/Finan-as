@@ -1,4 +1,4 @@
-import { Trash2, ArrowUpCircle, ArrowDownCircle, Calendar } from 'lucide-react';
+import { Trash2, ArrowUpCircle, ArrowDownCircle, Calendar, Pencil } from 'lucide-react';
 import { Transaction } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -7,9 +7,10 @@ import { ptBR } from 'date-fns/locale';
 interface TransactionListProps {
   transactions: Transaction[];
   onDelete: (id: string) => void;
+  onEdit: (transaction: Transaction) => void;
 }
 
-export function TransactionList({ transactions, onDelete }: TransactionListProps) {
+export function TransactionList({ transactions, onDelete, onEdit }: TransactionListProps) {
   if (transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400 space-y-4">
@@ -58,6 +59,12 @@ export function TransactionList({ transactions, onDelete }: TransactionListProps
             )}>
               {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
             </span>
+            <button
+              onClick={() => onEdit(transaction)}
+              className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all"
+            >
+              <Pencil size={18} />
+            </button>
             <button
               onClick={() => onDelete(transaction.id)}
               className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
