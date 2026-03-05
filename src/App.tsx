@@ -12,10 +12,13 @@ import { RecurringExpenseForm } from './components/RecurringExpenseForm';
 import { RecurringExpenseList } from './components/RecurringExpenseList';
 import { cn } from './lib/utils';
 
+import { sheetService } from './services/sheetService';
+
 type Tab = 'summary' | 'transactions' | 'clients' | 'calendar' | 'fixed-costs';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
+  const [isSyncing, setIsSyncing] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('businessflow-transactions');
     return saved ? JSON.parse(saved) : [];
@@ -42,26 +45,36 @@ export default function App() {
     localStorage.setItem('businessflow-recurring-expenses', JSON.stringify(recurringExpenses));
   }, [recurringExpenses]);
 
-  const addTransaction = (newTransaction: Omit<Transaction, 'id'>) => {
+  const addTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
     const transaction: Transaction = {
       ...newTransaction,
       id: crypto.randomUUID(),
     };
     setTransactions(prev => [transaction, ...prev]);
     setIsFormOpen(false);
+
+    // Sync to SheetDB
+    setIsSyncing(true);
+    await sheetService.postTransaction(transaction);
+    setIsSyncing(false);
   };
 
   const deleteTransaction = (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
-  const addClient = (newClient: Omit<Client, 'id'>) => {
+  const addClient = async (newClient: Omit<Client, 'id'>) => {
     const client: Client = {
       ...newClient,
       id: crypto.randomUUID(),
     };
     setClients(prev => [...prev, client]);
     setIsFormOpen(false);
+
+    // Sync to SheetDB
+    setIsSyncing(true);
+    await sheetService.postClient(client);
+    setIsSyncing(false);
   };
 
   const deleteClient = (id: string) => {
@@ -74,13 +87,18 @@ export default function App() {
     ));
   };
 
-  const addRecurringExpense = (newExpense: Omit<RecurringExpense, 'id'>) => {
+  const addRecurringExpense = async (newExpense: Omit<RecurringExpense, 'id'>) => {
     const expense: RecurringExpense = {
       ...newExpense,
       id: crypto.randomUUID(),
     };
     setRecurringExpenses(prev => [...prev, expense]);
     setIsFormOpen(false);
+
+    // Sync to SheetDB
+    setIsSyncing(true);
+    await sheetService.postRecurringExpense(expense);
+    setIsSyncing(false);
   };
 
   const deleteRecurringExpense = (id: string) => {
@@ -103,7 +121,19 @@ export default function App() {
               <LayoutGrid size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-zinc-900 tracking-tight">BusinessFlow</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-zinc-900 tracking-tight">BusinessFlow</h1>
+                {isSyncing && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-zinc-100 rounded-full border border-zinc-200"
+                  >
+                    <RefreshCw size={10} className="animate-spin text-zinc-500" />
+                    <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Sincronizando...</span>
+                  </motion.div>
+                )}
+              </div>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gestão Empresarial</p>
             </div>
           </div>
