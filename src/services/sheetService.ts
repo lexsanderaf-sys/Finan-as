@@ -197,5 +197,52 @@ export const sheetService = {
       console.error('Error updating recurring expense in SheetDB:', error);
       return false;
     }
+  },
+
+  async getAllData() {
+    try {
+      const [transactionsRes, clientsRes, expensesRes] = await Promise.all([
+        fetch(`${SHEETDB_API_URL}?sheet=Transactions`),
+        fetch(`${SHEETDB_API_URL}?sheet=Clients`),
+        fetch(`${SHEETDB_API_URL}?sheet=RecurringExpenses`)
+      ]);
+
+      const transactions = await transactionsRes.json();
+      const clients = await clientsRes.json();
+      const expenses = await expensesRes.json();
+
+      return {
+        transactions: Array.isArray(transactions) ? transactions.map((t: any) => ({
+          id: t.id,
+          date: t.data,
+          description: t.descricao,
+          amount: Number(t.valor),
+          type: t.tipo,
+          category: t.categoria,
+          clientId: t.cliente_id,
+          recurringExpenseId: t.custo_fixo_id
+        })) : [],
+        clients: Array.isArray(clients) ? clients.map((c: any) => ({
+          id: c.id,
+          name: c.nome,
+          email: c.email,
+          isRecurring: c.recorrente === 'Sim',
+          monthlyValue: Number(c.valor_mensal),
+          billingDay: Number(c.dia_faturamento),
+          status: c.status
+        })) : [],
+        recurringExpenses: Array.isArray(expenses) ? expenses.map((e: any) => ({
+          id: e.id,
+          description: e.descricao,
+          amount: Number(e.valor),
+          category: e.categoria,
+          billingDay: Number(e.dia_vencimento),
+          status: e.status
+        })) : []
+      };
+    } catch (error) {
+      console.error('Error fetching data from SheetDB:', error);
+      return null;
+    }
   }
 };

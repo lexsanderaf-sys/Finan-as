@@ -33,6 +33,25 @@ export default function App() {
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<{ type: 'transaction' | 'client' | 'expense', data: any } | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    setIsSyncing(true);
+    setSyncError(null);
+    const data = await sheetService.getAllData();
+    if (data) {
+      setTransactions(data.transactions);
+      setClients(data.clients);
+      setRecurringExpenses(data.recurringExpenses);
+    } else {
+      setSyncError('Erro ao carregar dados da planilha. Verifique sua conexão.');
+    }
+    setIsSyncing(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('businessflow-transactions', JSON.stringify(transactions));
@@ -56,7 +75,8 @@ export default function App() {
 
     // Sync to SheetDB
     setIsSyncing(true);
-    await sheetService.postTransaction(transaction);
+    const success = await sheetService.postTransaction(transaction);
+    if (!success) setSyncError('Erro ao salvar transação na planilha.');
     setIsSyncing(false);
   };
 
@@ -67,7 +87,8 @@ export default function App() {
     setEditingItem(null);
 
     setIsSyncing(true);
-    await sheetService.updateTransaction(id, updatedTransaction);
+    const success = await sheetService.updateTransaction(id, updatedTransaction);
+    if (!success) setSyncError('Erro ao atualizar transação na planilha.');
     setIsSyncing(false);
   };
 
@@ -75,7 +96,8 @@ export default function App() {
     setTransactions(prev => prev.filter(t => t.id !== id));
     
     setIsSyncing(true);
-    await sheetService.deleteTransaction(id);
+    const success = await sheetService.deleteTransaction(id);
+    if (!success) setSyncError('Erro ao excluir transação da planilha.');
     setIsSyncing(false);
   };
 
@@ -89,7 +111,8 @@ export default function App() {
 
     // Sync to SheetDB
     setIsSyncing(true);
-    await sheetService.postClient(client);
+    const success = await sheetService.postClient(client);
+    if (!success) setSyncError('Erro ao salvar cliente na planilha.');
     setIsSyncing(false);
   };
 
@@ -100,7 +123,8 @@ export default function App() {
     setEditingItem(null);
 
     setIsSyncing(true);
-    await sheetService.updateClient(id, updatedClient);
+    const success = await sheetService.updateClient(id, updatedClient);
+    if (!success) setSyncError('Erro ao atualizar cliente na planilha.');
     setIsSyncing(false);
   };
 
@@ -108,7 +132,8 @@ export default function App() {
     setClients(prev => prev.filter(c => c.id !== id));
     
     setIsSyncing(true);
-    await sheetService.deleteClient(id);
+    const success = await sheetService.deleteClient(id);
+    if (!success) setSyncError('Erro ao excluir cliente da planilha.');
     setIsSyncing(false);
   };
 
@@ -128,7 +153,8 @@ export default function App() {
 
     // Sync to SheetDB
     setIsSyncing(true);
-    await sheetService.postRecurringExpense(expense);
+    const success = await sheetService.postRecurringExpense(expense);
+    if (!success) setSyncError('Erro ao salvar custo fixo na planilha.');
     setIsSyncing(false);
   };
 
@@ -139,7 +165,8 @@ export default function App() {
     setEditingItem(null);
 
     setIsSyncing(true);
-    await sheetService.updateRecurringExpense(id, updatedExpense);
+    const success = await sheetService.updateRecurringExpense(id, updatedExpense);
+    if (!success) setSyncError('Erro ao atualizar custo fixo na planilha.');
     setIsSyncing(false);
   };
 
@@ -147,7 +174,8 @@ export default function App() {
     setRecurringExpenses(prev => prev.filter(e => e.id !== id));
     
     setIsSyncing(true);
-    await sheetService.deleteRecurringExpense(id);
+    const success = await sheetService.deleteRecurringExpense(id);
+    if (!success) setSyncError('Erro ao excluir custo fixo da planilha.');
     setIsSyncing(false);
   };
 
@@ -179,16 +207,26 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-zinc-900 tracking-tight">BusinessFlow</h1>
-                {isSyncing && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-zinc-100 rounded-full border border-zinc-200"
+                <div className="flex items-center gap-2">
+                  {isSyncing && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-zinc-100 rounded-full border border-zinc-200"
+                    >
+                      <RefreshCw size={10} className="animate-spin text-zinc-500" />
+                      <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Sincronizando...</span>
+                    </motion.div>
+                  )}
+                  <button
+                    onClick={loadData}
+                    disabled={isSyncing}
+                    className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-500 transition-colors"
+                    title="Atualizar dados da planilha"
                   >
-                    <RefreshCw size={10} className="animate-spin text-zinc-500" />
-                    <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Sincronizando...</span>
-                  </motion.div>
-                )}
+                    <RefreshCw size={14} className={cn(isSyncing && "animate-spin")} />
+                  </button>
+                </div>
               </div>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gestão Empresarial</p>
             </div>
@@ -251,6 +289,26 @@ export default function App() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 py-8">
+        {syncError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                <RefreshCw size={16} />
+              </div>
+              <p className="text-sm font-medium">{syncError}</p>
+            </div>
+            <button 
+              onClick={() => setSyncError(null)}
+              className="text-xs font-bold text-red-400 uppercase tracking-widest hover:text-red-600"
+            >
+              Fechar
+            </button>
+          </motion.div>
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
