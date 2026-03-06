@@ -30,7 +30,10 @@ export function SummaryDashboard({ transactions, clients, recurringExpenses }: S
   // Get all unique months from transactions for the selector
   const availableMonths = useMemo(() => {
     const months = transactions.reduce((acc: { key: string; label: string }[], t) => {
+      if (!t.date) return acc;
       const date = new Date(t.date);
+      if (isNaN(date.getTime())) return acc;
+      
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const label = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
       
@@ -46,7 +49,10 @@ export function SummaryDashboard({ transactions, clients, recurringExpenses }: S
   const filteredTransactions = useMemo(() => {
     if (selectedMonth === 'all') return transactions;
     return transactions.filter(t => {
+      if (!t.date) return false;
       const date = new Date(t.date);
+      if (isNaN(date.getTime())) return false;
+      
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       return key === selectedMonth;
     });
@@ -80,7 +86,10 @@ export function SummaryDashboard({ transactions, clients, recurringExpenses }: S
   // Monthly data for charts (always use all transactions for the trend charts)
   const monthlyTrendData = useMemo(() => {
     return transactions.reduce((acc: any[], t) => {
+      if (!t.date) return acc;
       const date = new Date(t.date);
+      if (isNaN(date.getTime())) return acc;
+      
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = date.toLocaleString('pt-BR', { month: 'short', year: '2-digit' });
       

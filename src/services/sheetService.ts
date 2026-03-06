@@ -212,33 +212,39 @@ export const sheetService = {
       const expenses = await expensesRes.json();
 
       return {
-        transactions: Array.isArray(transactions) ? transactions.map((t: any) => ({
-          id: t.id,
-          date: t.data,
-          description: t.descricao,
-          amount: Number(t.valor),
-          type: t.tipo,
-          category: t.categoria,
-          clientId: t.cliente_id,
-          recurringExpenseId: t.custo_fixo_id
-        })) : [],
-        clients: Array.isArray(clients) ? clients.map((c: any) => ({
-          id: c.id,
-          name: c.nome,
-          email: c.email,
-          isRecurring: c.recorrente === 'Sim',
-          monthlyValue: Number(c.valor_mensal),
-          billingDay: Number(c.dia_faturamento),
-          status: c.status
-        })) : [],
-        recurringExpenses: Array.isArray(expenses) ? expenses.map((e: any) => ({
-          id: e.id,
-          description: e.descricao,
-          amount: Number(e.valor),
-          category: e.categoria,
-          billingDay: Number(e.dia_vencimento),
-          status: e.status
-        })) : []
+        transactions: Array.isArray(transactions) ? transactions
+          .filter((t: any) => t.id) // Ensure it has an ID
+          .map((t: any) => ({
+            id: t.id,
+            date: t.data || t.Data || '',
+            description: t.descricao || t.Descricao || '',
+            amount: Number(t.valor || t.Valor || 0),
+            type: t.tipo || t.Tipo || 'expense',
+            category: t.categoria || t.Categoria || 'Outros',
+            clientId: t.cliente_id || t.Cliente_id || '',
+            recurringExpenseId: t.custo_fixo_id || t.Custo_fixo_id || ''
+          })) : [],
+        clients: Array.isArray(clients) ? clients
+          .filter((c: any) => c.id)
+          .map((c: any) => ({
+            id: c.id,
+            name: c.nome || c.Nome || '',
+            email: c.email || c.Email || '',
+            isRecurring: (c.recorrente || c.Recorrente) === 'Sim',
+            monthlyValue: Number(c.valor_mensal || c.Valor_mensal || 0),
+            billingDay: Number(c.dia_faturamento || c.Dia_faturamento || 1),
+            status: c.status || c.Status || 'active'
+          })) : [],
+        recurringExpenses: Array.isArray(expenses) ? expenses
+          .filter((e: any) => e.id)
+          .map((e: any) => ({
+            id: e.id,
+            description: e.descricao || e.Descricao || '',
+            amount: Number(e.valor || e.Valor || 0),
+            category: e.categoria || e.Categoria || 'Outros',
+            billingDay: Number(e.dia_vencimento || e.Dia_vencimento || 1),
+            status: e.status || e.Status || 'active'
+          })) : []
       };
     } catch (error) {
       console.error('Error fetching data from SheetDB:', error);
