@@ -13,9 +13,9 @@ const CATEGORIES = ['Fornecedores', 'Impostos', 'Folha de Pagamento', 'Marketing
 
 export function RecurringExpenseForm({ onAdd, onUpdate, initialData, onCancel }: RecurringExpenseFormProps) {
   const [description, setDescription] = useState(initialData?.description || '');
-  const [amount, setAmount] = useState(initialData?.amount.toString() || '');
+  const [amount, setAmount] = useState(initialData?.amount?.toString() || '');
   const [category, setCategory] = useState(initialData?.category || CATEGORIES[0]);
-  const [billingDay, setBillingDay] = useState(initialData?.billingDay.toString() || '10');
+  const [billingDay, setBillingDay] = useState(initialData?.billingDay?.toString() || '10');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

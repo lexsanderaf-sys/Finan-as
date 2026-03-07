@@ -9,8 +9,8 @@ interface RecurringExpenseListProps {
   onEdit: (expense: RecurringExpense) => void;
 }
 
-export function RecurringExpenseList({ expenses, onDelete, onToggleStatus, onEdit }: RecurringExpenseListProps) {
-  if (expenses.length === 0) {
+export function RecurringExpenseList({ expenses = [], onDelete, onToggleStatus, onEdit }: RecurringExpenseListProps) {
+  if (!expenses || expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400 space-y-4">
         <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center">
@@ -22,9 +22,9 @@ export function RecurringExpenseList({ expenses, onDelete, onToggleStatus, onEdi
     );
   }
 
-  const totalRecurringExpenses = expenses
-    .filter(e => e.status === 'active')
-    .reduce((acc, e) => acc + e.amount, 0);
+  const totalRecurringExpenses = (expenses || [])
+    .filter(e => e && e.status === 'active')
+    .reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -35,7 +35,7 @@ export function RecurringExpenseList({ expenses, onDelete, onToggleStatus, onEdi
           <h3 className="text-3xl font-bold">{formatCurrency(totalRecurringExpenses)}</h3>
         </div>
         <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-          <RefreshCw size={24} className="animate-spin-slow" />
+          <RefreshCw size={24} className="animate-spin" />
         </div>
       </div>
 

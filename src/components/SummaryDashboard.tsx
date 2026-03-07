@@ -16,29 +16,36 @@ export function SummaryDashboard({ transactions, clients, recurringExpenses }: S
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   const totalRecurringRevenue = useMemo(() => {
+    if (!Array.isArray(clients)) return 0;
     return clients
-      .filter(c => c.status === 'active' && c.isRecurring)
-      .reduce((acc, c) => acc + c.monthlyValue, 0);
+      .filter(c => c && c.status === 'active' && c.isRecurring)
+      .reduce((acc, c) => acc + (Number(c.monthlyValue) || 0), 0);
   }, [clients]);
 
   const totalFixedCosts = useMemo(() => {
+    if (!Array.isArray(recurringExpenses)) return 0;
     return recurringExpenses
-      .filter(e => e.status === 'active')
-      .reduce((acc, e) => acc + e.amount, 0);
+      .filter(e => e && e.status === 'active')
+      .reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
   }, [recurringExpenses]);
 
   // Get all unique months from transactions for the selector
   const availableMonths = useMemo(() => {
+    if (!Array.isArray(transactions)) return [];
     const months = transactions.reduce((acc: { key: string; label: string }[], t) => {
-      if (!t.date) return acc;
-      const date = new Date(t.date);
-      if (isNaN(date.getTime())) return acc;
-      
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const label = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-      
-      if (!acc.find(m => m.key === key)) {
-        acc.push({ key, label });
+      if (!t || !t.date) return acc;
+      try {
+        const date = new Date(t.date);
+        if (isNaN(date.getTime())) return acc;
+        
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const label = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+        
+        if (!acc.find(m => m.key === key)) {
+          acc.push({ key, label });
+        }
+      } catch (e) {
+        console.error('Error parsing date in availableMonths:', e);
       }
       return acc;
     }, []);
@@ -47,14 +54,19 @@ export function SummaryDashboard({ transactions, clients, recurringExpenses }: S
 
   // Filter transactions based on selection
   const filteredTransactions = useMemo(() => {
+    if (!Array.isArray(transactions)) return [];
     if (selectedMonth === 'all') return transactions;
     return transactions.filter(t => {
-      if (!t.date) return false;
-      const date = new Date(t.date);
-      if (isNaN(date.getTime())) return false;
-      
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      return key === selectedMonth;
+      if (!t || !t.date) return false;
+      try {
+        const date = new Date(t.date);
+        if (isNaN(date.getTime())) return false;
+        
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return key === selectedMonth;
+      } catch (e) {
+        return false;
+      }
     });
   }, [transactions, selectedMonth]);
 

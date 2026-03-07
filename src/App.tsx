@@ -10,6 +10,7 @@ import { ClientForm } from './components/ClientForm';
 import { CalendarView } from './components/CalendarView';
 import { RecurringExpenseForm } from './components/RecurringExpenseForm';
 import { RecurringExpenseList } from './components/RecurringExpenseList';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { cn } from './lib/utils';
 
 import { sheetService } from './services/sheetService';
@@ -20,16 +21,28 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [isSyncing, setIsSyncing] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('businessflow-transactions');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('businessflow-transactions');
+      return (saved ? JSON.parse(saved) : []) || [];
+    } catch (e) {
+      return [];
+    }
   });
   const [clients, setClients] = useState<Client[]>(() => {
-    const saved = localStorage.getItem('businessflow-clients');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('businessflow-clients');
+      return (saved ? JSON.parse(saved) : []) || [];
+    } catch (e) {
+      return [];
+    }
   });
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>(() => {
-    const saved = localStorage.getItem('businessflow-recurring-expenses');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('businessflow-recurring-expenses');
+      return (saved ? JSON.parse(saved) : []) || [];
+    } catch (e) {
+      return [];
+    }
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<{ type: 'transaction' | 'client' | 'expense', data: any } | null>(null);
@@ -137,10 +150,19 @@ export default function App() {
     setIsSyncing(false);
   };
 
-  const toggleClientStatus = (id: string) => {
-    setClients(prev => prev.map(c => 
-      c.id === id ? { ...c, status: c.status === 'active' ? 'inactive' : 'active' } : c
-    ));
+  const toggleClientStatus = async (id: string) => {
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
+    
+    const newStatus = (client.status === 'active' ? 'inactive' : 'active') as 'active' | 'inactive';
+    const updatedClient = { ...client, status: newStatus };
+    
+    setClients(prev => prev.map(c => c.id === id ? updatedClient : c));
+    
+    setIsSyncing(true);
+    const success = await sheetService.updateClient(id, updatedClient);
+    if (!success) setSyncError('Erro ao atualizar status do cliente na planilha.');
+    setIsSyncing(false);
   };
 
   const addRecurringExpense = async (newExpense: Omit<RecurringExpense, 'id'>) => {
@@ -179,10 +201,19 @@ export default function App() {
     setIsSyncing(false);
   };
 
-  const toggleRecurringExpenseStatus = (id: string) => {
-    setRecurringExpenses(prev => prev.map(e => 
-      e.id === id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e
-    ));
+  const toggleRecurringExpenseStatus = async (id: string) => {
+    const expense = recurringExpenses.find(e => e.id === id);
+    if (!expense) return;
+    
+    const newStatus = (expense.status === 'active' ? 'inactive' : 'active') as 'active' | 'inactive';
+    const updatedExpense = { ...expense, status: newStatus };
+    
+    setRecurringExpenses(prev => prev.map(e => e.id === id ? updatedExpense : e));
+    
+    setIsSyncing(true);
+    const success = await sheetService.updateRecurringExpense(id, updatedExpense);
+    if (!success) setSyncError('Erro ao atualizar status do custo fixo na planilha.');
+    setIsSyncing(false);
   };
 
   const handleEdit = (type: 'transaction' | 'client' | 'expense', data: any) => {
@@ -309,59 +340,61 @@ export default function App() {
             </button>
           </motion.div>
         )}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === 'summary' ? (
-              <SummaryDashboard transactions={transactions} clients={clients} recurringExpenses={recurringExpenses} />
-            ) : activeTab === 'transactions' ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-zinc-900">Histórico</h2>
-                  <p className="text-sm text-zinc-500 font-medium">{transactions.length} transações</p>
+        <ErrorBoundary>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === 'summary' ? (
+                <SummaryDashboard transactions={transactions} clients={clients} recurringExpenses={recurringExpenses} />
+              ) : activeTab === 'transactions' ? (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-zinc-900">Histórico</h2>
+                    <p className="text-sm text-zinc-500 font-medium">{transactions.length} transações</p>
+                  </div>
+                  <TransactionList 
+                    transactions={transactions} 
+                    onDelete={deleteTransaction} 
+                    onEdit={(t) => handleEdit('transaction', t)}
+                  />
                 </div>
-                <TransactionList 
-                  transactions={transactions} 
-                  onDelete={deleteTransaction} 
-                  onEdit={(t) => handleEdit('transaction', t)}
-                />
-              </div>
-            ) : activeTab === 'calendar' ? (
-              <CalendarView transactions={transactions} />
-            ) : activeTab === 'clients' ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-zinc-900">Carteira de Clientes</h2>
-                  <p className="text-sm text-zinc-500 font-medium">{clients.length} clientes</p>
+              ) : activeTab === 'calendar' ? (
+                <CalendarView transactions={transactions} />
+              ) : activeTab === 'clients' ? (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-zinc-900">Carteira de Clientes</h2>
+                    <p className="text-sm text-zinc-500 font-medium">{clients.length} clientes</p>
+                  </div>
+                  <ClientList 
+                    clients={clients} 
+                    onDelete={deleteClient} 
+                    onToggleStatus={toggleClientStatus} 
+                    onEdit={(c) => handleEdit('client', c)}
+                  />
                 </div>
-                <ClientList 
-                  clients={clients} 
-                  onDelete={deleteClient} 
-                  onToggleStatus={toggleClientStatus} 
-                  onEdit={(c) => handleEdit('client', c)}
-                />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-zinc-900">Custos Fixos</h2>
-                  <p className="text-sm text-zinc-500 font-medium">{recurringExpenses.length} custos cadastrados</p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-zinc-900">Custos Fixos</h2>
+                    <p className="text-sm text-zinc-500 font-medium">{recurringExpenses.length} custos cadastrados</p>
+                  </div>
+                  <RecurringExpenseList 
+                    expenses={recurringExpenses} 
+                    onDelete={deleteRecurringExpense} 
+                    onToggleStatus={toggleRecurringExpenseStatus} 
+                    onEdit={(e) => handleEdit('expense', e)}
+                  />
                 </div>
-                <RecurringExpenseList 
-                  expenses={recurringExpenses} 
-                  onDelete={deleteRecurringExpense} 
-                  onToggleStatus={toggleRecurringExpenseStatus} 
-                  onEdit={(e) => handleEdit('expense', e)}
-                />
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </ErrorBoundary>
       </main>
 
       {/* Floating Action Button */}
